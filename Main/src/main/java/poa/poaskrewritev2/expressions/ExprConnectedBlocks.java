@@ -1,6 +1,7 @@
 package poa.poaskrewritev2.expressions;
 
 import ch.njol.skript.Skript;
+import ch.njol.skript.aliases.ItemType;
 import ch.njol.skript.lang.Expression;
 import ch.njol.skript.lang.ExpressionType;
 import ch.njol.skript.lang.SkriptParser.ParseResult;
@@ -8,74 +9,213 @@ import ch.njol.skript.lang.util.SimpleExpression;
 import ch.njol.util.Kleenean;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.event.Event;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.LinkedList;
+import java.util.List;
 import java.util.Queue;
 import java.util.Set;
 
 public class ExprConnectedBlocks extends SimpleExpression<Block> {
 
-    private final Set<Block> visitedBlocks = new HashSet<>();
+    private static final BlockFace[] SEARCH_DIRECTIONS = {
+            BlockFace.UP,
+            BlockFace.DOWN,
+            BlockFace.EAST,
+            BlockFace.WEST,
+            BlockFace.SOUTH,
+            BlockFace.NORTH
+    };
 
     static {
-        Skript.registerExpression(ExprConnectedBlocks.class, Block.class, ExpressionType.COMBINED,
-                "[next] %number% connected blocks from %location%");
+        Skript.registerExpression(
+                ExprConnectedBlocks.class,
+                Block.class,
+                ExpressionType.COMBINED,
+                "[next] %number% connected block[s] (matching|of) %itemtypes/blockdatas% from %location%"
+        );
     }
 
-    private Expression<Number> number;
-    private Expression<Location> location;
+    private Expression<Number> limitExpression;
+    private Expression<?> filterExpression;
+    private Expression<Location> locationExpression;
 
-
-    @SuppressWarnings({"unchecked", "NullableProblems"})
+    @SuppressWarnings({"unchecked"})
     @Override
-    public boolean init(Expression<?>[] exprs, int matchedPattern, Kleenean isDelayed, ParseResult parseResult) {
-        number = (Expression<Number>) exprs[0];
-        location = (Expression<Location>) exprs[1];
+    public boolean init(
+            Expression<?>[] expressions,
+            int matchedPattern,
+            Kleenean isDelayed,
+            ParseResult parseResult
+    ) {
+        limitExpression = (Expression<Number>) expressions[0];
+        filterExpression = expressions[1];
+        locationExpression = (Expression<Location>) expressions[2];
+
         return true;
     }
 
-    @SuppressWarnings("NullableProblems")
     @Override
-    protected @Nullable Block[] get(Event event) {
+    protected Block @NotNull [] get(@NotNull Event event) {
+        Number limitValue = limitExpression.getSingle(event);
+        Location startLocation = locationExpression.getSingle(event);
+        Object[] filters = filterExpression.getArray(event);
 
-        return findStructure(location.getSingle(event), number.getSingle(event).intValue()).toArray(new Block[0]);
+        if (limitValue == null
+                || startLocation == null
+                || filters.length == 0) {
+            return new Block[0];
+        }
+
+        int returnLimit = limitValue.intValue();
+
+        if (returnLimit <= 0) {
+            return new Block[0];
+        }
+
+        return findConnectedBlocks(
+                startLocation,
+                returnLimit,
+                filters
+        ).toArray(Block[]::new);
     }
 
-    public Set<Block> findStructure(Location start, int limit) {
-        visitedBlocks.clear();
-        Queue<Block> queue = new LinkedList<>();
-        queue.add(start.getBlock());
+    /**
+     * Searches through blocks connected on their six direct faces.
+     *
+     * A block must match at least one filter to be returned and to allow
+     * the search to continue through it.
+     *
+     * The limit controls the maximum number of returned blocks. Blocks
+     * rejected by the filters may still be checked and do not count
+     * towards the limit.
+     */
+    public List<Block> findConnectedBlocks(
+            @Nullable Location start,
+            int returnLimit,
+            Object @NotNull [] filters
+    ) {
+        if (start == null || returnLimit <= 0 || filters.length == 0) {
+            return List.of();
+        }
 
-        while (!queue.isEmpty() && visitedBlocks.size() < limit) {
-            Block current = queue.poll();
-            if (!visitedBlocks.contains(current) && !current.getType().isAir()) {
-                // Mark the current block as visited
-                visitedBlocks.add(current);
+        Block startBlock = start.getBlock();
 
-                // Add all adjacent blocks to the queue for exploration
-                addIfValid(queue, current.getRelative(0, 1, 0)); // Up
-                addIfValid(queue, current.getRelative(0, -1, 0)); // Down
-                addIfValid(queue, current.getRelative(1, 0, 0)); // East
-                addIfValid(queue, current.getRelative(-1, 0, 0)); // West
-                addIfValid(queue, current.getRelative(0, 0, 1)); // South
-                addIfValid(queue, current.getRelative(0, 0, -1)); // North
+        if (!matchesAnyFilter(startBlock, filters)) {
+            return List.of();
+        }
+
+        int initialCapacity = Math.min(returnLimit, 1024);
+
+        List<Block> results = new ArrayList<>(initialCapacity);
+        Queue<Block> pendingBlocks = new ArrayDeque<>(initialCapacity);
+
+        /*
+         * Includes both matching and rejected blocks. This prevents the
+         * same rejected neighbour from being checked several times.
+         */
+        Set<Block> checkedBlocks = new HashSet<>(initialCapacity);
+
+        checkedBlocks.add(startBlock);
+        pendingBlocks.add(startBlock);
+
+        while (!pendingBlocks.isEmpty()
+                && results.size() < returnLimit) {
+
+            Block current = pendingBlocks.poll();
+            results.add(current);
+
+            if (results.size() >= returnLimit) {
+                break;
+            }
+
+            for (BlockFace direction : SEARCH_DIRECTIONS) {
+                addIfMatching(
+                        pendingBlocks,
+                        checkedBlocks,
+                        current.getRelative(direction),
+                        filters
+                );
             }
         }
-        return visitedBlocks;
+
+        return results;
     }
 
-    private void addIfValid(Queue<Block> queue, Block block) {
-        if (!block.getType().isAir() && !visitedBlocks.contains(block)) {
-            queue.add(block);
+    private void addIfMatching(
+            Queue<Block> pendingBlocks,
+            Set<Block> checkedBlocks,
+            Block block,
+            Object[] filters
+    ) {
+        /*
+         * Set#add returns false if this block has already been checked.
+         */
+        if (!checkedBlocks.add(block)) {
+            return;
+        }
+
+        if (matchesAnyFilter(block, filters)) {
+            pendingBlocks.add(block);
         }
     }
 
+    private boolean matchesAnyFilter(
+            Block block,
+            Object[] filters
+    ) {
+        /*
+         * Do not allow an air filter to start searching through the
+         * effectively unlimited connected air surrounding structures.
+         */
+        if (block.getType().isAir()) {
+            return false;
+        }
 
+        BlockData currentBlockData = block.getBlockData();
 
+        for (Object filter : filters) {
+            if (filter instanceof ItemType itemType) {
+                /*
+                 * ItemType is used only for material and alias matching.
+                 *
+                 * Examples:
+                 * oak stairs
+                 * dirt
+                 * stone
+                 */
+                if (itemType.isOfType(block.getType())) {
+                    return true;
+                }
+
+                continue;
+            }
+
+            if (filter instanceof BlockData requiredBlockData) {
+                /*
+                 * The current complete block data must call matches()
+                 * with the parsed filter as the argument.
+                 *
+                 * This allows partial filters such as:
+                 * oak_stairs[facing=east]
+                 *
+                 * Other properties, such as waterlogged and shape, do
+                 * not need to be specified unless they matter.
+                 */
+                if (currentBlockData.matches(requiredBlockData)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
 
     @Override
     public boolean isSingle() {
@@ -87,10 +227,11 @@ public class ExprConnectedBlocks extends SimpleExpression<Block> {
         return Block.class;
     }
 
-    @SuppressWarnings("DataFlowIssue")
     @Override
-    public @NotNull String toString(@Nullable Event event, boolean debug) {
-        return "connected blocks";
+    public @NotNull String toString(
+            @Nullable Event event,
+            boolean debug
+    ) {
+        return "connected blocks matching item types or block data";
     }
-
 }
