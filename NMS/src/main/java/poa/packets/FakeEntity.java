@@ -27,6 +27,7 @@ public class FakeEntity {
             case "12110" -> FakeEntity12110.fakeEntityPacket(id, location, type, data);
             case "12111" -> FakeEntity12111.fakeEntityPacket(id, location, type, data);
             case "2612" -> FakeEntity2612.fakeEntityPacket(id, location, type, data);
+            case "262" -> FakeEntity262.fakeEntityPacket(id, location, type, data);
             default -> null;
         };
     }
@@ -52,6 +53,7 @@ public class FakeEntity {
             case "12110" -> FakeEntity12110.removeFakeEntityPacket(idList);
             case "12111" -> FakeEntity12111.removeFakeEntityPacket(idList);
             case "2612" -> FakeEntity2612.removeFakeEntityPacket(idList);
+            case "262" -> FakeEntity262.removeFakeEntityPacket(idList);
             default -> null;
         };
     }

@@ -26,6 +26,7 @@ public class SkPayerActionEvent extends SkriptEvent {
             case "12110" -> Skript.registerEvent("Player Action", SkPayerActionEvent.class, PlayerActionEvent12110.class, "player action packet");
             case "12111" -> Skript.registerEvent("Player Action", SkPayerActionEvent.class, PlayerActionEvent12111.class, "player action packet");
             case "2612" -> Skript.registerEvent("Player Action", SkPayerActionEvent.class, PlayerActionEvent2612.class, "player action packet");
+            case "262" -> Skript.registerEvent("Player Action", SkPayerActionEvent.class, PlayerActionEvent262.class, "player action packet");
         }
         RegisterPlayerAction.registerValues();
     }

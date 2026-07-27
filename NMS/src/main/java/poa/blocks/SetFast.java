@@ -23,6 +23,7 @@ public class SetFast {
             case "12110" -> SetFast12110.setFast(locations, blockData);
             case "12111" -> SetFast12111.setFast(locations, blockData);
             case "2612" -> SetFast2612.setFast(locations, blockData);
+            case "262" -> SetFast262.setFast(locations, blockData);
         }
     }
 
@@ -43,6 +44,7 @@ public class SetFast {
             case "12110" -> SetFast12110.setFaster(location, location2, blockData);
             case "12111" -> SetFast12111.setFaster(location, location2, blockData);
             case "2612" -> SetFast2612.setFaster(location, location2, blockData);
+            case "262" -> SetFast262.setFaster(location, location2, blockData);
         }
     }
 
@@ -63,6 +65,7 @@ public class SetFast {
             case "12110" -> SetFast12110.replaceFast(location, location2, from, to);
             case "12111" -> SetFast12111.replaceFast(location, location2, from, to);
             case "2612" -> SetFast2612.replaceFast(location, location2, from, to);
+            case "262" -> SetFast262.replaceFast(location, location2, from, to);
         }
     }
 

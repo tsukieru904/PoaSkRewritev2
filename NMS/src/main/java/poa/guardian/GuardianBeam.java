@@ -35,6 +35,7 @@ public class GuardianBeam {
     GuardianBeam12110 beam12110;
     GuardianBeam12111 beam12111;
     GuardianBeam2612 beam2612;
+    GuardianBeam262 beam262;
 
     public GuardianBeam(List<Player> players, String id, Location startLoc, Location endLoc, String color, Plugin plugin) {
         this.id = id.toLowerCase();
@@ -59,6 +60,7 @@ public class GuardianBeam {
             case "12110" -> beam12110 = new GuardianBeam12110(players, id, startLoc, endLoc, color, plugin);
             case "12111" -> beam12111 = new GuardianBeam12111(players, id, startLoc, endLoc, color, plugin);
             case "2612" -> beam2612 = new GuardianBeam2612(players, id, startLoc, endLoc, color, plugin);
+            case "262" -> beam262 = new GuardianBeam262(players, id, startLoc, endLoc, color, plugin);
         }
 
         dataMap.put(this.id, this);
@@ -81,6 +83,7 @@ public class GuardianBeam {
             case "12110" -> beam12110.loop();
             case "12111" -> beam12111.loop();
             case "2612" -> beam2612.loop();
+            case "262" -> beam262.loop();
         }
     }
 
@@ -101,6 +104,7 @@ public class GuardianBeam {
             case "12110" -> beam12110.destroy();
             case "12111" -> beam12111.destroy();
             case "2612" -> beam2612.destroy();
+            case "262" -> beam262.destroy();
         }
         dataMap.remove(this.id);
     }

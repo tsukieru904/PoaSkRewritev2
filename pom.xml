@@ -28,6 +28,7 @@
         <module>nms12110</module>
         <module>nms12111</module>
         <module>nms2612</module>
+        <module>nms262</module>
 
     </modules>
 
@@ -162,6 +163,11 @@
             <dependency>
                 <groupId>poa</groupId>
                 <artifactId>nms2612</artifactId>
+                <version>1</version>
+            </dependency>
+            <dependency>
+                <groupId>poa</groupId>
+                <artifactId>nms262</artifactId>
                 <version>1</version>
             </dependency>
             <dependency>

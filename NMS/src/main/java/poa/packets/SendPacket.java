@@ -24,6 +24,7 @@ public class SendPacket {
             case "12110" -> SendPacket12110.sendPacket(player, packet);
             case "12111" -> SendPacket12111.sendPacket(player, packet);
             case "2612" -> SendPacket2612.sendPacket(player, packet);
+            case "262" -> SendPacket262.sendPacket(player, packet);
         }
 
     }

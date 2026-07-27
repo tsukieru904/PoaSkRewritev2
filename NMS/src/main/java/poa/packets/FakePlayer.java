@@ -30,6 +30,7 @@ public class FakePlayer {
             case "12110" -> FakePlayer12110.spawnFakePlayer(sendTo, name, skinName, loc, listed, latency, id, uuid);
             case "12111" -> FakePlayer12111.spawnFakePlayer(sendTo, name, skinName, loc, listed, latency, id, uuid);
             case "2612" -> FakePlayer2612.spawnFakePlayer(sendTo, name, skinName, loc, listed, latency, id, uuid);
+            case "262" -> FakePlayer262.spawnFakePlayer(sendTo, name, skinName, loc, listed, latency, id, uuid);
         }
     }
 
@@ -73,6 +74,8 @@ public class FakePlayer {
                     FakePlayer12111.spawnFakePlayer(sendTo, name, texture, signature, loc, listed, latency, id, uuid, skinModel);
             case "2612" ->
                     FakePlayer2612.spawnFakePlayer(sendTo, name, texture, signature, loc, listed, latency, id, uuid, skinModel);
+            case "262" ->
+                    FakePlayer262.spawnFakePlayer(sendTo, name, texture, signature, loc, listed, latency, id, uuid, skinModel);
         }
     }
 
@@ -93,6 +96,7 @@ public class FakePlayer {
             case "12110" -> FakePlayer12110.removeFakePlayerPacket(sendTo, uuids, ids);
             case "12111" -> FakePlayer12111.removeFakePlayerPacket(sendTo, uuids, ids);
             case "2612" -> FakePlayer2612.removeFakePlayerPacket(sendTo, uuids, ids);
+            case "262" -> FakePlayer262.removeFakePlayerPacket(sendTo, uuids, ids);
         }
     }
 

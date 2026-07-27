@@ -118,6 +118,10 @@
             <groupId>poa</groupId>
             <artifactId>nms2612</artifactId>
         </dependency>
+        <dependency>
+            <groupId>poa</groupId>
+            <artifactId>nms262</artifactId>
+        </dependency>
     </dependencies>
 
 </project>

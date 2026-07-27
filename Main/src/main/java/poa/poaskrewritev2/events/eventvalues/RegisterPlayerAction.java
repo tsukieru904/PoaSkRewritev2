@@ -339,6 +339,35 @@ public class RegisterPlayerAction {
                     }
                 }, EventValues.TIME_NOW);
             }
+            case "262" -> {
+                EventValues.registerEventValue(PlayerActionEvent262.class, Location.class, new Getter<>() {
+                    @Override
+                    public Location get(PlayerActionEvent262 event) {
+                        return event.getLocation();
+                    }
+                }, EventValues.TIME_NOW);
+
+                EventValues.registerEventValue(PlayerActionEvent262.class, Integer.class, new Getter<>() {
+                    @Override
+                    public Integer get(PlayerActionEvent262 event) {
+                        return event.getSequence();
+                    }
+                }, EventValues.TIME_NOW);
+
+                EventValues.registerEventValue(PlayerActionEvent262.class, String.class, new Getter<>() {
+                    @Override
+                    public String get(PlayerActionEvent262 event) {
+                        return event.getActionString();
+                    }
+                }, EventValues.TIME_NOW);
+
+                EventValues.registerEventValue(PlayerActionEvent262.class, Block.class, new Getter<>() {
+                    @Override
+                    public Block get(PlayerActionEvent262 event) {
+                        return event.getBlock();
+                    }
+                }, EventValues.TIME_NOW);
+            }
 
         }
 

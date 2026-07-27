@@ -22,6 +22,7 @@ public class GlowMap {
             case "12110" -> GlowMap12110.getGlowMap();
             case "12111" -> GlowMap12111.getGlowMap();
             case "2612" -> GlowMap2612.getGlowMap();
+            case "262" -> GlowMap262.getGlowMap();
             case "1214" -> GlowMap1214.getGlowMap();
             case "1213" -> GlowMap1213.getGlowMap();
             case "1211" -> GlowMap1211.getGlowMap();

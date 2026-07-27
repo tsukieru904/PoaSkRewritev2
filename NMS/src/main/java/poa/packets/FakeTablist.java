@@ -26,6 +26,7 @@ public class FakeTablist {
             case "12110" -> FakeTablist12110.addTabPlayer(sendTo, name, tablistName, skinName, uuid, latency, 127);
             case "12111" -> FakeTablist12111.addTabPlayer(sendTo, name, tablistName, skinName, uuid, latency, 127);
             case "2612" -> FakeTablist2612.addTabPlayer(sendTo, name, tablistName, skinName, uuid, latency, 127);
+            case "262" -> FakeTablist262.addTabPlayer(sendTo, name, tablistName, skinName, uuid, latency, 127);
         }
     }
 
@@ -59,6 +60,7 @@ public class FakeTablist {
             case "12110" -> FakeTablist12110.removeTabPlayer(sendTo, uuids.getFirst());
             case "12111" -> FakeTablist12111.removeTabPlayer(sendTo, uuids.getFirst());
             case "2612" -> FakeTablist2612.removeTabPlayer(sendTo, uuids.getFirst());
+            case "262" -> FakeTablist262.removeTabPlayer(sendTo, uuids.getFirst());
         }
     }
 }

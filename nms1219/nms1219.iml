@@ -1,4 +1,4 @@
-?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <module version="4">
   <component name="FacetManager">
     <facet type="minecraft" name="Minecraft">
@@ -6,7 +6,6 @@
         <autoDetectTypes>
           <platformType>PAPER</platformType>
           <platformType>ADVENTURE</platformType>
-          <platformType>MCP</platformType>
         </autoDetectTypes>
         <projectReimportVersion>1</projectReimportVersion>
       </configuration>

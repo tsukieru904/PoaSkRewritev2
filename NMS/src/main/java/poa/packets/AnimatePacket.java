@@ -21,6 +21,7 @@ public class AnimatePacket {
             case "12110" -> AnimationPacket12110.packet(id, animation);
             case "12111" -> AnimationPacket12111.packet(id, animation);
             case "2612" -> AnimationPacket2612.packet(id, animation);
+            case "262" -> AnimationPacket262.packet(id, animation);
             default -> null;
         };
     }

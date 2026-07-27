@@ -82,6 +82,12 @@ public class SkChunkDataPacketEvent extends SkriptEvent {
                     ChunkDataPacketEvent2612.class,
                     "chunk data packet"
             );
+            case "262" -> Skript.registerEvent(
+                    "Chunk Data Packet",
+                    SkChunkDataPacketEvent.class,
+                    ChunkDataPacketEvent262.class,
+                    "chunk data packet"
+            );
 
         }
     }
