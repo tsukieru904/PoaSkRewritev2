@@ -386,7 +386,7 @@ public class ExprSecMetadataPacket extends SectionExpression<Object> {
         if (expr == null) return null;
         if (expr instanceof VariableString vs) return vs.toUnformattedString(e).trim();
         String s = expr.getSingle(e);
-        return s == null ? null : s.trim();
+        return s;
     }
 
     @SafeVarargs
