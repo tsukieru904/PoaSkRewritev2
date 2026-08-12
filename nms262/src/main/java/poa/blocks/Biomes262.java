@@ -187,8 +187,8 @@ public class Biomes262 {
         List<Object> out = new ArrayList<>(work.size());
 
         for (ChunkWork w : work) {
-            int cx = w.pos.x;
-            int cz = w.pos.z;
+            int cx = w.pos.getX();
+            int cz = w.pos.getZ();
 
             List<PalettedContainer<Holder<Biome>>> copies = w.sectionCopies;
 
