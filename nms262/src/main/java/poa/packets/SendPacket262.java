@@ -3,8 +3,8 @@ package poa.packets;
 import net.minecraft.network.protocol.Packet;
 import org.bukkit.craftbukkit.entity.CraftPlayer;
 import org.bukkit.entity.Player;
-import poa.util.FoliaScheduler;
 import poa.util.PoaPlugin262;
+import poa.util.FoliaScheduler;
 
 public class SendPacket262 {
     public static void sendPacket(Player player, Object packet) {
