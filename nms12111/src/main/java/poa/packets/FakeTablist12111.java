@@ -23,6 +23,7 @@ import org.bukkit.World;
 import org.bukkit.craftbukkit.CraftWorld;
 import org.bukkit.craftbukkit.entity.CraftPlayer;
 import org.bukkit.entity.Player;
+import poa.util.FoliaScheduler;
 import poa.util.Components12111;
 import poa.util.FetchSkin12111;
 import poa.util.PoaPlugin12111;
@@ -36,16 +37,18 @@ public class FakeTablist12111 {
 
 
     private static void addTabPlayer(List<Player> sendTo, String name, net.kyori.adventure.text.Component username, String texture, String signature, UUID uuid, int latency, int skinModel) {
-        Bukkit.getScheduler().runTaskAsynchronously(PoaPlugin12111.getPlugin(), () -> {
-            Bukkit.getScheduler().runTask(PoaPlugin12111.getPlugin(), () ->
-                    spawnTabEntry(sendTo, name, username, uuid, texture, signature, latency, skinModel)
-            );
+        FoliaScheduler.async(PoaPlugin12111.getPlugin(), () -> {
+            for (Player recipient : new ArrayList<>(sendTo)) {
+                        if (recipient == null || !recipient.isOnline()) continue;
+                        FoliaScheduler.entity(PoaPlugin12111.getPlugin(), recipient, () ->
+                                spawnTabEntry(List.of(recipient), name, username, uuid, texture, signature, latency, skinModel));
+                    }
 
         });
     }
 
     public static void addTabPlayer(List<Player> sendTo, String name, net.kyori.adventure.text.Component username, String skinName, UUID uuid, int latency, int skinModel) {
-        Bukkit.getScheduler().runTaskAsynchronously(PoaPlugin12111.getPlugin(), () -> {
+        FoliaScheduler.async(PoaPlugin12111.getPlugin(), () -> {
             if (skinName.length() > 16) {
                 if (!isValidBase64(skinName)) {
                     Bukkit.getLogger().log(Level.WARNING, skinName + " is not greater than 16 chars and does not match a base64 encode. Use texture or shorter name. Name is designed for sorting. Username is what shows");
@@ -56,9 +59,11 @@ public class FakeTablist12111 {
                     String newTexture = map.get("texture");
                     String newSignature = map.get("signature");
 
-                    Bukkit.getScheduler().runTask(PoaPlugin12111.getPlugin(), () ->
-                            spawnTabEntry(sendTo, name, username, uuid, newTexture, newSignature, latency, skinModel)
-                    );
+                    for (Player recipient : new ArrayList<>(sendTo)) {
+                        if (recipient == null || !recipient.isOnline()) continue;
+                        FoliaScheduler.entity(PoaPlugin12111.getPlugin(), recipient, () ->
+                                spawnTabEntry(List.of(recipient), name, username, uuid, newTexture, newSignature, latency, skinModel));
+                    }
                 });
                 return;
             }
@@ -121,8 +126,11 @@ public class FakeTablist12111 {
 
         ClientboundPlayerInfoUpdatePacket packet = new ClientboundPlayerInfoUpdatePacket(actions, entry);
 
-        for (Player player : sendTo) {
-            ((CraftPlayer) player).getHandle().connection.send(packet);
+        for (Player player : new ArrayList<>(sendTo)) {
+            if (player == null || !player.isOnline()) continue;
+            final Player recipient = player;
+            FoliaScheduler.entity(PoaPlugin12111.getPlugin(), recipient, () ->
+                    ((CraftPlayer) recipient).getHandle().connection.send(packet));
         }
         fakePlayer.getBukkitEntity().getPlayer().playerListName(username);
 
@@ -174,10 +182,12 @@ public class FakeTablist12111 {
         GameProfile profile = activeTabProfiles.remove(uuid);
         if (profile == null) return;
 
-        for (Player player : sendTo) {
-            ServerGamePacketListenerImpl conn = ((CraftPlayer) player).getHandle().connection;
-
-            // Step 1: unlist
+        for (Player player : new ArrayList<>(sendTo)) {
+            if (player == null || !player.isOnline()) continue;
+            final Player recipient = player;
+            FoliaScheduler.entity(PoaPlugin12111.getPlugin(), recipient, () -> {
+                ServerGamePacketListenerImpl conn = ((CraftPlayer) recipient).getHandle().connection;
+                // Step 1: unlist
             ClientboundPlayerInfoUpdatePacket.Entry hideEntry = new ClientboundPlayerInfoUpdatePacket.Entry(
                     uuid,
                     profile,
@@ -194,17 +204,17 @@ public class FakeTablist12111 {
                     EnumSet.of(ClientboundPlayerInfoUpdatePacket.Action.UPDATE_LISTED),
                     hideEntry
             );
-
-            conn.send(hidePacket);
+                conn.send(hidePacket);
+            });
         }
 
         // Step 2: remove after delay to avoid cache race
-        Bukkit.getScheduler().runTaskLater(PoaPlugin12111.getPlugin(), () -> {
-            ClientboundPlayerInfoRemovePacket removePacket = new ClientboundPlayerInfoRemovePacket(List.of(uuid));
-            for (Player player : sendTo) {
-                SendPacket12111.sendPacket(player, removePacket);
-            }
-        }, 3L);
+        for (Player player : new ArrayList<>(sendTo)) {
+            if (player == null || !player.isOnline()) continue;
+            final Player recipient = player;
+            FoliaScheduler.entityLater(PoaPlugin12111.getPlugin(), recipient, () ->
+                    SendPacket12111.sendPacket(recipient, new ClientboundPlayerInfoRemovePacket(List.of(uuid))), 3L);
+        }
     }
 
 
