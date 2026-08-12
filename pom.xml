@@ -6,7 +6,7 @@
 
     <groupId>poa</groupId>
     <artifactId>PoaSkRewritev2</artifactId>
-    <version>1</version>
+    <version>1-folia</version>
     <packaging>pom</packaging>
 
     <name>PoaSkRewritev2</name>
