@@ -6,6 +6,9 @@ public class PoaPlugin {
 
     public static void setPlugin(Plugin plugin){
          switch (BukkitVersion.getBukkitVersion()){
+             case "1202" -> PoaPlugin1202.setPlugin(plugin);
+             case "1204" -> PoaPlugin1204.setPlugin(plugin);
+             case "1206" -> PoaPlugin1206.setPlugin(plugin);
              case "121" -> PoaPlugin121.setPlugin(plugin);
              case "1211" -> PoaPlugin1211.setPlugin(plugin);
              case "1213" -> PoaPlugin1213.setPlugin(plugin);
