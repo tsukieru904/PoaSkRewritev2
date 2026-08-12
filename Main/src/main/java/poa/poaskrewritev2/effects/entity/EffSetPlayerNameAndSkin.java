@@ -14,7 +14,6 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import poa.util.FoliaScheduler;
 import poa.packets.FakePlayer;
 import poa.poaskrewritev2.PoaSkRewritev2;
 
@@ -94,32 +93,16 @@ public class EffSetPlayerNameAndSkin extends Effect implements Listener {
             playerUuidMap.put(player, uuidMap);
 
 
-            final Player recipient = player;
-            final Player targetPlayer = target;
-
-            // On Folia the recipient and target may belong to different region threads.
-            // Read target state on the target entity scheduler, then send the fake-player
-            // packets on the recipient's entity scheduler.
-            FoliaScheduler.entity(PoaSkRewritev2.getINSTANCE(), targetPlayer, () -> {
-                if (!targetPlayer.isOnline() || !recipient.isOnline()) return;
-
-                final var targetLocation = targetPlayer.getLocation().clone();
-                final int targetPing = targetPlayer.getPing();
-                final int targetEntityId = targetPlayer.getEntityId();
-
-                FoliaScheduler.entity(PoaSkRewritev2.getINSTANCE(), recipient, () ->
-                        FakePlayer.spawnFakePlayer(
-                                List.of(recipient),
-                                name,
-                                skinName,
-                                targetLocation,
-                                true,
-                                targetPing,
-                                targetEntityId,
-                                fakeUuid
-                        )
-                );
-            });
+            FakePlayer.spawnFakePlayer(
+                    List.of(player),
+                    name,
+                    skinName,
+                    target.getLocation(),
+                    true,
+                    target.getPing(),
+                    target.getEntityId(),
+                    fakeUuid
+            );
         }
     }
 
@@ -159,19 +142,11 @@ public class EffSetPlayerNameAndSkin extends Effect implements Listener {
 
 
             if (fakeUuid != null) {
-                final Player recipient = player;
-                final Player targetPlayer = target;
-                FoliaScheduler.entity(PoaSkRewritev2.getINSTANCE(), targetPlayer, () -> {
-                    if (!targetPlayer.isOnline() || !recipient.isOnline()) return;
-                    final int targetEntityId = targetPlayer.getEntityId();
-                    FoliaScheduler.entity(PoaSkRewritev2.getINSTANCE(), recipient, () ->
-                            FakePlayer.removeFakePlayerPacket(
-                                    List.of(recipient),
-                                    List.of(fakeUuid),
-                                    List.of(targetEntityId)
-                            )
-                    );
-                });
+                FakePlayer.removeFakePlayerPacket(
+                        List.of(player),
+                        List.of(fakeUuid),
+                        List.of(target.getEntityId())
+                );
             }
         }
     }
@@ -205,26 +180,19 @@ public class EffSetPlayerNameAndSkin extends Effect implements Listener {
             return;
 
 
-        FoliaScheduler.asyncLater(
+        Bukkit.getScheduler().runTaskLaterAsynchronously(
                 PoaSkRewritev2.getINSTANCE(),
-                () -> {
-                    Player currentPlayer = Bukkit.getPlayer(player.getUniqueId());
-                    Player currentTarget = Bukkit.getPlayer(target.getUniqueId());
-                    if (currentPlayer == null || currentTarget == null) return;
-
-                    FoliaScheduler.entity(PoaSkRewritev2.getINSTANCE(), currentTarget, () -> {
-                        if (!currentTarget.isOnline() || !currentPlayer.isOnline()) return;
-                        final var targetLocation = currentTarget.getLocation().clone();
-                        final int targetPing = currentTarget.getPing();
-                        final int targetEntityId = currentTarget.getEntityId();
-
-                        FoliaScheduler.entityLater(PoaSkRewritev2.getINSTANCE(), currentPlayer,
-                                () -> FakePlayer.spawnFakePlayer(
-                                        List.of(currentPlayer), name, skinName, targetLocation, true,
-                                        targetPing, targetEntityId, fakeUuid), 1L);
-                    });
-                },
-                0L
+                () -> FakePlayer.spawnFakePlayer(
+                        List.of(player),
+                        name,
+                        skinName,
+                        target.getLocation(),
+                        true,
+                        target.getPing(),
+                        target.getEntityId(),
+                        fakeUuid
+                ),
+                1L
         );
     }
 

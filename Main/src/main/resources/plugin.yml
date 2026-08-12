@@ -4,7 +4,6 @@ website: https://github.com/Ekpoa/PoaSkRewritev2
 version: '4.16.14'
 main: poa.poaskrewritev2.PoaSkRewritev2
 api-version: '1.20'
-folia-supported: true
 depend:
     - Skript
 
@@ -14,3 +13,4 @@ commands:
   poasktest:
     permission: poa.poasktest
   poaskdebug:
+folia-supported: true
