@@ -87,6 +87,6 @@ jobs:
       - name: Upload plugin JAR
         uses: actions/upload-artifact@v4
         with:
-          name: PoaSK
+          name: PoaSK-folia
           path: Main/target/Poa*.jar
           if-no-files-found: error
