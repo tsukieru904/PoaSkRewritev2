@@ -36,6 +36,7 @@ import org.bukkit.entity.Player;
 
 import org.bukkit.plugin.Plugin;
 import org.json.JSONObject;
+import poa.util.FoliaScheduler;
 import poa.util.FetchSkin262;
 import poa.util.PoaPlugin262;
 
@@ -150,10 +151,11 @@ public class FakePlayer262 {
 
                     if (!isCached) {
                         removeFakePlayerPacket(sendTo, List.of(randomUUID), List.of(id));
-                        Bukkit.getScheduler().runTaskLater(PoaPlugin262.getPlugin(), () ->
-                                        spawnFakePlayer(sendTo, name, newTexture, newSignature, loc, listed, 0, id, uuid, skinModel),
-                                4L
-                        );
+                        for (Player recipient : new ArrayList<>(sendTo)) {
+                            if (recipient == null || !recipient.isOnline()) continue;
+                            FoliaScheduler.entityLater(PoaPlugin262.getPlugin(), recipient,
+                                    () -> spawnFakePlayer(List.of(recipient), name, newTexture, newSignature, loc, listed, 0, id, uuid, skinModel), 4L);
+                        }
                     }
                 });
             } else {
@@ -237,7 +239,7 @@ public class FakePlayer262 {
         if (texturesToSignatures.containsKey(base64Texture)) {
             future.complete(texturesToSignatures.get(base64Texture));
         } else {
-            Bukkit.getScheduler().runTaskAsynchronously(PoaPlugin262.getPlugin(), () -> {
+            FoliaScheduler.async(PoaPlugin262.getPlugin(), () -> {
                 String decoded = new String(Base64.getDecoder().decode(base64Texture), StandardCharsets.UTF_8);
                 JSONObject json = new JSONObject(decoded);
                 String textureUrl = json.getJSONObject("textures").getJSONObject("SKIN").getString("url");

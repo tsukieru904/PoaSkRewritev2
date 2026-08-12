@@ -7,8 +7,10 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.craftbukkit.entity.CraftPlayer;
 import org.bukkit.entity.Player;
+import io.papermc.paper.threadedregions.scheduler.ScheduledTask;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.util.Vector;
+import poa.util.FoliaScheduler;
 import poa.packets.FakeEntity262;
 import poa.packets.Metadata262;
 import poa.packets.TeamPacket262;
@@ -23,7 +25,7 @@ public class GuardianBeam262 {
 
     @Getter
     List<UUID> uuids = new ArrayList<>();
-    List<UUID> currentlySeeing = new ArrayList<>();
+    Set<UUID> currentlySeeing = java.util.concurrent.ConcurrentHashMap.newKeySet();
     int guardianID;
     int squidID;
     UUID guardianUUID;
@@ -33,7 +35,7 @@ public class GuardianBeam262 {
     Location batLoc;
     String color;
     Plugin plugin;
-    int taskID;
+    Map<UUID, ScheduledTask> tasks = new HashMap<>();
 
 
     public GuardianBeam262(List<Player> players, String id, Location startLoc, Location endLoc, String color, Plugin plugin) {
@@ -133,44 +135,41 @@ public class GuardianBeam262 {
     }
 
     public void loop() {
-        this.taskID = Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, () -> {
-            boolean skip = true;
-            for (UUID player : uuids) {
-                if (Bukkit.getPlayer(player) != null) {
-                    skip = false;
-                    break;
-                }
-            }
+        destroyTasks();
+        for (UUID uuid : this.uuids) {
+            Player player = Bukkit.getPlayer(uuid);
+            if (player == null || !player.isOnline()) continue;
 
-            if (skip) { //no point running checks if no user is online
-                return;
-            }
+            ScheduledTask task = FoliaScheduler.entityAtFixedRate(plugin, player,
+                    () -> {
+                        Player current = Bukkit.getPlayer(uuid);
+                        if (current != null && current.isOnline()) {
+                            runCheckAndShow((CraftPlayer) current);
+                        }
+                    }, 20L, 20L);
+            if (task != null) tasks.put(uuid, task);
+        }
+    }
 
-            for (UUID uuid : this.uuids) {
-                final Player player = Bukkit.getPlayer(uuid);
-                if (player == null)
-                    continue;
-
-                CraftPlayer craftPlayer = (CraftPlayer) player;
-
-                runCheckAndShow(craftPlayer);
-            }
-        }, 20L, 20L).getTaskId();
-
-
+    private void destroyTasks() {
+        for (ScheduledTask task : tasks.values()) {
+            if (task != null) task.cancel();
+        }
+        tasks.clear();
     }
 
     public void destroy() {
         final Object removePacket = FakeEntity262.removeFakeEntityPacket(List.of(this.guardianID, this.squidID));
         for (UUID uuid : this.uuids) {
             final Player player = Bukkit.getPlayer(uuid);
-            if (player == null)
+            if (player == null || !player.isOnline())
                 continue;
 
-            CraftPlayer craftPlayer = (CraftPlayer) player;
-            craftPlayer.getHandle().connection.send((Packet<?>) removePacket);
+            FoliaScheduler.entity(plugin, player, () ->
+                    ((CraftPlayer) player).getHandle().connection.send((Packet<?>) removePacket)
+            );
         }
-        Bukkit.getScheduler().cancelTask(this.taskID);
+        destroyTasks();
         //  dataMap.remove(this.beamID);
     }
 
