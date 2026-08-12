@@ -6,6 +6,7 @@ import net.minecraft.core.Holder;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.protocol.game.ClientboundChunksBiomesPacket;
+import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -21,6 +22,7 @@ import org.bukkit.craftbukkit.CraftWorld;
 import org.bukkit.craftbukkit.entity.CraftPlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
+import poa.util.FoliaScheduler;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
@@ -36,71 +38,80 @@ public class Biomes1218 {
      * Async wrapper: does live-world reads on the main thread, heavy work async, sends on main.
      */
     public static void sendBiomeBetweenAsync(Plugin plugin, Set<Player> viewers, Location a, Location b, String biomeName) {
+        if (plugin == null || viewers == null || viewers.isEmpty() || a == null || b == null) return;
+        if (a.getWorld() == null || b.getWorld() == null || !a.getWorld().equals(b.getWorld())) return;
 
-        if (plugin == null || viewers == null || a == null || b == null) return;
-        if (!a.getWorld().equals(b.getWorld()) || !a.getWorld().equals(a.getWorld())) return;
+        ServerLevel level = ((CraftWorld) a.getWorld()).getHandle();
+        int minX = Math.min(a.getBlockX(), b.getBlockX());
+        int maxX = Math.max(a.getBlockX(), b.getBlockX());
+        int minY = Math.max(level.getMinY(), Math.min(a.getBlockY(), b.getBlockY()));
+        int maxY = Math.min(level.getMaxY() - 1, Math.max(a.getBlockY(), b.getBlockY()));
+        int minZ = Math.min(a.getBlockZ(), b.getBlockZ());
+        int maxZ = Math.max(a.getBlockZ(), b.getBlockZ());
 
-        Bukkit.getScheduler().runTask(plugin, () -> {
-            ServerLevel level = ((CraftWorld) a.getWorld()).getHandle();
+        int cMinX = Math.floorDiv(minX, 16), cMaxX = Math.floorDiv(maxX, 16);
+        int cMinZ = Math.floorDiv(minZ, 16), cMaxZ = Math.floorDiv(maxZ, 16);
+        int expected = (cMaxX - cMinX + 1) * (cMaxZ - cMinZ + 1);
+        if (expected <= 0) return;
 
-            int minX = Math.min(a.getBlockX(), b.getBlockX());
-            int maxX = Math.max(a.getBlockX(), b.getBlockX());
-            int minY = Math.max(level.getMinY(), Math.min(a.getBlockY(), b.getBlockY()));
-            int maxY = Math.min(level.getMaxY() - 1, Math.max(a.getBlockY(), b.getBlockY()));
-            int minZ = Math.min(a.getBlockZ(), b.getBlockZ());
-            int maxZ = Math.max(a.getBlockZ(), b.getBlockZ());
+        int worldMinY = level.getMinY();
+        List<ChunkWork> work = new java.util.concurrent.CopyOnWriteArrayList<>();
+        java.util.concurrent.atomic.AtomicInteger completed = new java.util.concurrent.atomic.AtomicInteger();
+        java.util.concurrent.atomic.AtomicReference<Holder<Biome>> targetRef = new java.util.concurrent.atomic.AtomicReference<>();
 
-            Holder<Biome> TARGET = resolveBiomeHolder(level, biomeName);
+        for (int cx = cMinX; cx <= cMaxX; cx++) {
+            for (int cz = cMinZ; cz <= cMaxZ; cz++) {
+                final int chunkX = cx;
+                final int chunkZ = cz;
+                Location chunkLocation = new Location(a.getWorld(), chunkX * 16 + 8, a.getY(), chunkZ * 16 + 8);
 
-            int cMinX = Math.floorDiv(minX, 16), cMaxX = Math.floorDiv(maxX, 16);
-            int cMinZ = Math.floorDiv(minZ, 16), cMaxZ = Math.floorDiv(maxZ, 16);
-
-            int worldMinY = level.getMinY();
-
-            List<ChunkWork> work = new ArrayList<>();
-            for (int cx = cMinX; cx <= cMaxX; cx++) {
-                for (int cz = cMinZ; cz <= cMaxZ; cz++) {
-                    LevelChunk chunk = level.getChunk(cx, cz);
-                    LevelChunkSection[] sections = chunk.getSections();
-
-                    List<PalettedContainer<Holder<Biome>>> copies = new ArrayList<>(sections.length);
-
-                    for (int si = 0; si < sections.length; si++) {
-                        LevelChunkSection sec = sections[si];
-                        PalettedContainer<Holder<Biome>> copy;
-                        if (sec != null) {
-                            PalettedContainerRO<Holder<Biome>> ro = sec.getBiomes();
-                            copy = (ro != null) ? ro.copy() : newEmptyBiomeContainer(TARGET);
-                        } else {
-                            copy = newEmptyBiomeContainer(TARGET);
+                FoliaScheduler.region(plugin, chunkLocation, () -> {
+                    try {
+                        Holder<Biome> target = targetRef.get();
+                        if (target == null) {
+                            target = resolveBiomeHolder(level, biomeName);
+                            targetRef.compareAndSet(null, target);
                         }
-                        copies.add(copy);
-                    }
 
-                    work.add(new ChunkWork(new ChunkPos(cx, cz), copies));
-                }
-            }
-
-            Constructor<?> cbdListCtor  = getChunkBiomeDataListCtor();
-            Constructor<?> cbdBytesCtor = getChunkBiomeDataBytesCtor();
-
-            CompletableFuture
-                    .supplyAsync(() -> buildChunkBiomeDatasAsync(work, TARGET,
-                            minX, minY, minZ, maxX, maxY, maxZ, worldMinY, cbdListCtor, cbdBytesCtor))
-                    .thenAccept(chunkDatas -> {
-                        if (chunkDatas.isEmpty()) return;
-                        Bukkit.getScheduler().runTask(plugin, () -> {
-                            ClientboundChunksBiomesPacket pkt =
-                                    new ClientboundChunksBiomesPacket(castUncheckedList(chunkDatas));
-
-                            for (Player p : viewers) {
-                                ServerPlayer nmsPlayer = ((CraftPlayer) p).getHandle();
-                                nmsPlayer.connection.send(pkt);
+                        LevelChunk chunk = level.getChunk(chunkX, chunkZ);
+                        LevelChunkSection[] sections = chunk.getSections();
+                        List<PalettedContainer<Holder<Biome>>> copies = new ArrayList<>(sections.length);
+                        for (LevelChunkSection sec : sections) {
+                            if (sec != null) {
+                                PalettedContainerRO<Holder<Biome>> ro = sec.getBiomes();
+                                copies.add(ro != null ? ro.copy() : newEmptyBiomeContainer(target));
+                            } else {
+                                copies.add(newEmptyBiomeContainer(target));
                             }
+                        }
+                        work.add(new ChunkWork(new ChunkPos(chunkX, chunkZ), copies));
+                    } finally {
+                        if (completed.incrementAndGet() == expected) {
+                            Holder<Biome> target = targetRef.get();
+                            if (target == null) return;
 
-                        });
-                    });
-        });
+                            CompletableFuture
+                                    .supplyAsync(() -> {
+                                        Constructor<?> cbdListCtor = getChunkBiomeDataListCtor();
+                                        Constructor<?> cbdBytesCtor = getChunkBiomeDataBytesCtor();
+                                        return buildChunkBiomeDatasAsync(work, target, minX, minY, minZ, maxX, maxY, maxZ,
+                                                worldMinY, cbdListCtor, cbdBytesCtor);
+                                    })
+                                    .thenAccept(chunkDatas -> {
+                                        if (chunkDatas.isEmpty()) return;
+                                        ClientboundChunksBiomesPacket pkt =
+                                                new ClientboundChunksBiomesPacket(castUncheckedList(chunkDatas));
+                                        for (Player viewer : new ArrayList<>(viewers)) {
+                                            if (viewer == null || !viewer.isOnline()) continue;
+                                            FoliaScheduler.entity(plugin, viewer, () ->
+                                                    ((CraftPlayer) viewer).getHandle().connection.send(pkt));
+                                        }
+                                    });
+                        }
+                    }
+                });
+            }
+        }
     }
 
     /**
@@ -176,8 +187,8 @@ public class Biomes1218 {
         List<Object> out = new ArrayList<>(work.size());
 
         for (ChunkWork w : work) {
-            int cx = w.pos.x;
-            int cz = w.pos.z;
+            int cx = w.pos.x();
+            int cz = w.pos.z();
 
             List<PalettedContainer<Holder<Biome>>> copies = w.sectionCopies;
 
@@ -239,7 +250,7 @@ public class Biomes1218 {
             idStr = "minecraft:" + idStr;
         }
 
-        net.minecraft.resources.ResourceLocation id = net.minecraft.resources.ResourceLocation.tryParse(idStr);
+        final Identifier id = Identifier.tryParse(idStr);
         if (id == null) {
             throw new IllegalArgumentException("Invalid biome id: " + biomeName + " (must be lowercase a-z0-9/._-)");
         }
