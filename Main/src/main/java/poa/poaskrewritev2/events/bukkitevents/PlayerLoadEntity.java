@@ -5,6 +5,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import poa.util.FoliaScheduler;
 import poa.packets.Metadata;
 import poa.packets.SendPacket;
 import poa.poaskrewritev2.PoaSkRewritev2;
@@ -26,7 +27,7 @@ public class PlayerLoadEntity implements Listener {
         if(ids == null || !ids.contains(target.getEntityId()))
             return;
 
-        Bukkit.getScheduler().runTaskLater(PoaSkRewritev2.getINSTANCE(), () -> {
+        FoliaScheduler.entityLater(PoaSkRewritev2.getINSTANCE(), player, () -> {
             Metadata metadata = new Metadata(target.getEntityId());
             metadata.setGlow(true);
             SendPacket.sendPacket(player, metadata.build());

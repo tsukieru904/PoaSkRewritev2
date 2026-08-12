@@ -7,6 +7,7 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerLoginEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import poa.util.FoliaScheduler;
 import poa.packets.listener.PacketInjector;
 import poa.poaskrewritev2.PoaSkRewritev2;
 import poa.poaskrewritev2.hooks.Tab;
@@ -33,7 +34,7 @@ public class JoinLeave implements Listener {
     public void join(PlayerJoinEvent e) {
         final Player player = e.getPlayer();
         if(disableTabTeams) {
-            Bukkit.getScheduler().runTaskLater(PoaSkRewritev2.getINSTANCE(), () -> Tab.removeListener(player), 2L);
+            FoliaScheduler.entityLater(PoaSkRewritev2.getINSTANCE(), player, () -> Tab.removeListener(player), 2L);
 
         }
         switch (BukkitVersion.getBukkitVersion()) {
