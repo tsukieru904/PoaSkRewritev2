@@ -26,6 +26,7 @@ import org.bukkit.World;
 import org.bukkit.craftbukkit.v1_20_R2.CraftWorld;
 import org.bukkit.craftbukkit.v1_20_R2.entity.CraftPlayer;
 import org.bukkit.entity.Player;
+import poa.util.FoliaScheduler;
 import poa.util.FetchSkin1202;
 
 import java.util.*;
