@@ -6,7 +6,7 @@ import net.minecraft.core.Holder;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.network.protocol.game.ClientboundChunksBiomesPacket;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
@@ -250,7 +250,7 @@ public class Biomes1218 {
             idStr = "minecraft:" + idStr;
         }
 
-        final Identifier id = Identifier.tryParse(idStr);
+        final ResourceLocation id = ResourceLocation.tryParse(idStr);
         if (id == null) {
             throw new IllegalArgumentException("Invalid biome id: " + biomeName + " (must be lowercase a-z0-9/._-)");
         }
