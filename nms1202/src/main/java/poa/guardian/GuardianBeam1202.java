@@ -9,7 +9,7 @@ import org.bukkit.Location;
 import org.bukkit.craftbukkit.v1_20_R2.entity.CraftPlayer;
 import org.bukkit.entity.Player;
 import poa.util.FoliaScheduler;
-import io.papermc.paper.threadedregions.scheduler.ScheduledTask;
+import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.util.Vector;
 import poa.packets.FakeEntity1202;
@@ -38,7 +38,7 @@ public class GuardianBeam1202 {
     Location batLoc;
     String color;
     Plugin plugin;
-    Map<UUID, ScheduledTask> tasks = new HashMap<>();
+    Map<UUID, BukkitTask> tasks = new HashMap<>();
 
 
     public GuardianBeam1202(List<Player> players, String id, Location startLoc, Location endLoc, String color, Plugin plugin) {
@@ -143,7 +143,7 @@ public class GuardianBeam1202 {
         for (UUID uuid : this.uuids) {
             Player player = Bukkit.getPlayer(uuid);
             if (player == null || !player.isOnline()) continue;
-            ScheduledTask task = FoliaScheduler.entityAtFixedRate(plugin, player, () -> {
+            BukkitTask task = FoliaScheduler.entityAtFixedRate(plugin, player, () -> {
                 Player current = Bukkit.getPlayer(uuid);
                 if (current != null && current.isOnline()) runCheckAndShow((CraftPlayer) current);
             }, 20L, 20L);
@@ -152,7 +152,7 @@ public class GuardianBeam1202 {
     }
 
     private void destroyTasks() {
-        for (ScheduledTask task : tasks.values()) if (task != null) task.cancel();
+        for (BukkitTask task : tasks.values()) if (task != null) task.cancel();
         tasks.clear();
     }
 
