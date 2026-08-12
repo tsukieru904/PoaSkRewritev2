@@ -9,7 +9,7 @@
         <version>1</version>
     </parent>
 
-    <artifactId>PoaSK</artifactId>
+    <artifactId>PoaSK-folia</artifactId>
     <packaging>jar</packaging>
 
     <build>
