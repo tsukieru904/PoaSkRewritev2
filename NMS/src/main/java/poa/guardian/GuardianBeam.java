@@ -12,7 +12,7 @@ import java.util.logging.Level;
 
 public class GuardianBeam {
 
-    public static Map<String, GuardianBeam> dataMap = new java.util.concurrent.ConcurrentHashMap<>();
+    public static Map<String, GuardianBeam> dataMap = new HashMap<>();
 
     public static GuardianBeam getBeam(String id){
         return dataMap.getOrDefault(id, null);
