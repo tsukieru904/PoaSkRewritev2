@@ -8,6 +8,8 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.craftbukkit.entity.CraftPlayer;
 import org.bukkit.entity.Player;
+import poa.util.FoliaScheduler;
+import io.papermc.paper.threadedregions.scheduler.ScheduledTask;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.util.Vector;
 import poa.packets.FakeEntity1206;
@@ -25,7 +27,7 @@ public class GuardianBeam1206 {
 
     @Getter
     List<UUID> uuids = new ArrayList<>();
-    List<UUID> currentlySeeing = new ArrayList<>();
+    Set<UUID> currentlySeeing = java.util.concurrent.ConcurrentHashMap.newKeySet();
     int guardianID;
     int squidID;
     UUID guardianUUID;
@@ -35,7 +37,7 @@ public class GuardianBeam1206 {
     Location batLoc;
     String color;
     Plugin plugin;
-    int taskID;
+    Map<UUID, ScheduledTask> tasks = new HashMap<>();
 
 
     public GuardianBeam1206(List<Player> players, String id, Location startLoc, Location endLoc, String color, Plugin plugin) {
@@ -113,12 +115,14 @@ public class GuardianBeam1206 {
             squidMeta.setInvisible(true);
 
 
-            final ServerGamePacketListenerImpl connection = player.getHandle().connection;
-            connection.send((Packet<?>) guardianPacket);
-            connection.send((Packet<?>) squidPacket);
-            connection.send((Packet<?>) teamPacket);
-            connection.send((Packet<?>) guardianMeta.build());
-            connection.send((Packet<?>) squidMeta.build());
+            FoliaScheduler.entity(plugin, player, () -> {
+                final ServerGamePacketListenerImpl connection = player.getHandle().connection;
+                connection.send((Packet<?>) guardianPacket);
+                connection.send((Packet<?>) squidPacket);
+                connection.send((Packet<?>) teamPacket);
+                connection.send((Packet<?>) guardianMeta.build());
+                connection.send((Packet<?>) squidMeta.build());
+            });
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -134,31 +138,21 @@ public class GuardianBeam1206 {
     }
 
     public void loop() {
-        this.taskID = Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, () -> {
-            boolean skip = true;
-            for (UUID player : uuids) {
-                if (Bukkit.getPlayer(player) != null) {
-                    skip = false;
-                    break;
-                }
-            }
+        destroyTasks();
+        for (UUID uuid : this.uuids) {
+            Player player = Bukkit.getPlayer(uuid);
+            if (player == null || !player.isOnline()) continue;
+            ScheduledTask task = FoliaScheduler.entityAtFixedRate(plugin, player, () -> {
+                Player current = Bukkit.getPlayer(uuid);
+                if (current != null && current.isOnline()) runCheckAndShow((CraftPlayer) current);
+            }, 20L, 20L);
+            if (task != null) tasks.put(uuid, task);
+        }
+    }
 
-            if (skip) { //no point running checks if no user is online
-                return;
-            }
-
-            for (UUID uuid : this.uuids) {
-                final Player player = Bukkit.getPlayer(uuid);
-                if (player == null)
-                    continue;
-
-                CraftPlayer craftPlayer = (CraftPlayer) player;
-
-                runCheckAndShow(craftPlayer);
-            }
-        }, 20L, 20L).getTaskId();
-
-
+    private void destroyTasks() {
+        for (ScheduledTask task : tasks.values()) if (task != null) task.cancel();
+        tasks.clear();
     }
 
     public void destroy() {
@@ -169,9 +163,10 @@ public class GuardianBeam1206 {
                 continue;
 
             CraftPlayer craftPlayer = (CraftPlayer) player;
-            craftPlayer.getHandle().connection.send((Packet<?>) removePacket);
+            FoliaScheduler.entity(plugin, player, () ->
+                    craftPlayer.getHandle().connection.send((Packet<?>) removePacket));
         }
-        Bukkit.getScheduler().cancelTask(this.taskID);
+        destroyTasks();
         //  dataMap.remove(this.beamID);
     }
 

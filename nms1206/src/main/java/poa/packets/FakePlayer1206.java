@@ -27,6 +27,7 @@ import org.bukkit.World;
 import org.bukkit.craftbukkit.CraftWorld;
 import org.bukkit.craftbukkit.entity.CraftPlayer;
 import org.bukkit.entity.Player;
+import poa.util.FoliaScheduler;
 import org.checkerframework.framework.qual.PostconditionAnnotation;
 import poa.util.FetchSkin1206;
 
