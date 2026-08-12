@@ -32,6 +32,7 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.craftbukkit.CraftWorld;
 import org.bukkit.craftbukkit.entity.CraftPlayer;
 import org.bukkit.entity.Player;
+import poa.util.FoliaScheduler;
 
 import org.bukkit.plugin.Plugin;
 import org.json.JSONObject;
@@ -147,10 +148,11 @@ public class FakePlayer1213 {
                 if (!isCached) {
                     removeFakePlayerPacket(sendTo, List.of(randomUUID), List.of(id));
 
-                    Bukkit.getScheduler().runTaskLater(PoaPlugin1213.getPlugin(), () -> {
-                        spawnFakePlayer(sendTo, name, newTexture, sig[0], loc, listed, 0, id, uuid, skinModel);
-
-                    }, 4L);
+                    for (Player recipient : new ArrayList<>(sendTo)) {
+                        if (recipient == null || !recipient.isOnline()) continue;
+                        FoliaScheduler.entityLater(PoaPlugin1213.getPlugin(), recipient, () ->
+                                spawnFakePlayer(List.of(recipient), name, newTexture, sig[0], loc, listed, 0, id, uuid, skinModel), 4L);
+                    }
                 }
             });
         }
@@ -278,7 +280,7 @@ public class FakePlayer1213 {
         if (texturesToSignatures.containsKey(base64Texture)) {
             future.complete(texturesToSignatures.get(base64Texture));
         } else {
-            Bukkit.getScheduler().runTaskAsynchronously(PoaPlugin1213.getPlugin(), () -> {
+            FoliaScheduler.async(PoaPlugin1213.getPlugin(), () -> {
                 String decoded = new String(Base64.getDecoder().decode(base64Texture), StandardCharsets.UTF_8);
                 JSONObject json = new JSONObject(decoded);
                 String textureUrl = json.getJSONObject("textures").getJSONObject("SKIN").getString("url");
